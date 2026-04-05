@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Staging — 76 Daniel Dr</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f7f3ee;
+    --warm-white: #faf9f7;
+    --charcoal: #2c2c2c;
+    --muted: #7a7169;
+    --accent: #8b6f4e;
+    --accent-light: #c4a882;
+    --border: #e4ddd5;
+    --success: #5a8a6a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--warm-white); color: var(--charcoal); min-height: 100vh; }
+  header { background: var(--charcoal); color: var(--cream); padding: 20px 40px; display: flex; align-items: baseline; gap: 16px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; letter-spacing: 0.02em; }
+  header span { font-size: 13px; color: var(--accent-light); letter-spacing: 0.08em; text-transform: uppercase; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 30px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    background: white;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: #fdf9f5; }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone .upload-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+  .upload-zone p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .upload-zone strong { color: var(--accent); }
+  .file-name { margin-top: 10px; font-size: 13px; color: var(--success); font-weight: 500; }
+
+  .style-section { margin-bottom: 32px; }
+  .style-section label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 12px; }
+  .style-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .style-btn { padding: 9px 18px; border: 1.5px solid var(--border); background: white; border-radius: 30px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--charcoal); cursor: pointer; transition: all 0.18s; }
+  .style-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .style-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: var(--cream); }
+
+  .stage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  @media (max-width: 700px) { .stage-grid { grid-template-columns: 1fr; } }
+  .panel { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: white; }
+  .panel-label { padding: 12px 18px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); background: var(--cream); border-bottom: 1px solid var(--border); }
+  .panel img { width: 100%; display: block; aspect-ratio: 4/3; object-fit: cover; }
+
+  .panel-empty {
+    aspect-ratio: 4/3;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--cream); gap: 10px;
+    cursor: pointer; position: relative;
+  }
+  .panel-empty input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .panel-empty .icon { font-size: 40px; opacity: 0.25; }
+  .panel-empty p { font-size: 13px; color: var(--muted); }
+
+  .panel-staged { aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; background: var(--cream); min-height: 230px; }
+  .placeholder { text-align: center; padding: 32px; }
+  .placeholder .icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+  .placeholder p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  .loading-wrap { text-align: center; padding: 40px 20px; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-wrap p { font-size: 13px; color: var(--muted); }
+  .loading-wrap .stage-status { font-size: 12px; color: var(--accent-light); margin-top: 6px; font-style: italic; }
+
+  .description-panel { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 32px; }
+  .description-panel h3 { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 400; margin-bottom: 14px; }
+  .staged-text { font-size: 14px; line-height: 1.8; color: #444; }
+  .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 18px; }
+  .item-card { background: var(--cream); border-radius: 8px; padding: 12px 14px; }
+  .item-card .item-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .item-card .item-detail { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .stage-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--charcoal); color: var(--cream); border: none; padding: 14px 28px; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: background 0.18s; }
+  .stage-btn:hover { background: #1a1a1a; }
+  .stage-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .badge { display: inline-block; background: var(--success); color: white; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
+  .error-msg { color: #c0392b; font-size: 13px; margin-top: 12px; padding: 10px 14px; background: #fdf0ef; border-radius: 6px; }
+
+  .note { font-size: 12px; color: var(--muted); margin-bottom: 28px; padding: 12px 16px; background: white; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Virtual Staging</h1>
+  <span>76 Daniel Dr · South Burlington, VT</span>
+</header>
+
+<div class="container">
+
+  <div class="note">
+    ⚠️ <strong>To use this tool:</strong> Open it in the Claude.ai artifact viewer (not as a standalone file), or run it via a local server with your Anthropic API key. The API requires a server-side proxy — paste your key into the <code>API_KEY</code> variable below if running locally.
+  </div>
+
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="upload-icon">📷</div>
+    <p><strong>Click to upload a room photo</strong> or drag &amp; drop<br>JPG, PNG, WEBP — any room from the listing</p>
+    <div class="file-name" id="file-name" style="display:none"></div>
+  </div>
+
+  <div class="style-section">
+    <label>Interior Design Style</label>
+    <div class="style-grid">
+      <button class="style-btn active" data-style="Modern Farmhouse">Modern Farmhouse</button>
+      <button class="style-btn" data-style="Scandinavian Minimalist">Scandinavian Minimalist</button>
+      <button class="style-btn" data-style="Contemporary Luxe">Contemporary Luxe</button>
+      <button class="style-btn" data-style="Transitional Classic">Transitional Classic</button>
+      <button class="style-btn" data-style="Coastal Vermont">Coastal Vermont</button>
+      <button class="style-btn" data-style="Mid-Century Modern">Mid-Century Modern</button>
+    </div>
+  </div>
+
+  <div class="stage-grid">
+    <div class="panel">
+      <div class="panel-label">Original · Unstaged</div>
+      <div class="panel-empty" id="panel-empty">
+        <input type="file" id="file-input-2" accept="image/*">
+        <div class="icon">🖼️</div>
+        <p>Upload a photo to begin</p>
+      </div>
+      <img id="original-img" style="display:none" alt="Uploaded room">
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Virtually Staged <span id="style-badge" class="badge">Modern Farmhouse</span></div>
+      <div class="panel-staged" id="staged-panel">
+        <div class="placeholder" id="placeholder">
+          <div class="icon">🛋️</div>
+          <p>Staged concept will appear here</p>
+        </div>
+        <div class="loading-wrap" id="loading" style="display:none">
+          <div class="spinner"></div>
+          <p>Analyzing &amp; staging…</p>
+          <div class="stage-status" id="stage-status">Reading architectural details</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <button class="stage-btn" id="stage-btn" onclick="runStaging()" disabled>
+      ✦ Stage This Room
+    </button>
+    <div class="error-msg" id="error-msg" style="display:none"></div>
+  </div>
+
+  <div class="description-panel" id="description-panel" style="display:none">
+    <h3 id="desc-title">Staging Concept</h3>
+    <div class="staged-text" id="staged-text"></div>
+    <div class="items-grid" id="items-grid"></div>
+  </div>
+
+</div>
+
+<script>
+  // ─── CONFIG ──────────────────────────────────────────────────────────────────
+  // If running locally via a proxy server, set your proxy URL here.
+  // If running inside Claude.ai artifact viewer, leave as-is.
+  const API_URL = "https://api.anthropic.com/v1/messages";
+  const API_KEY = ""; // Only needed if running outside Claude.ai — paste key here for local use
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  let selectedStyle = "Modern Farmhouse";
+  let uploadedImageBase64 = null;
+  let uploadedMediaType = "image/jpeg";
+
+  document.querySelectorAll('.style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedStyle = btn.dataset.style;
+      document.getElementById('style-badge').textContent = selectedStyle;
+      document.getElementById('placeholder').style.display = '';
+      document.getElementById('description-panel').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'none';
+    });
+  });
+
+  function handleFile(file) {
+    if (!file) return;
+    uploadedMediaType = file.type || "image/jpeg";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      uploadedImageBase64 = dataUrl.split(',')[1];
+      const img = document.getElementById('original-img');
+      img.src = dataUrl;
+      img.style.display = 'block';
+      document.getElementById('panel-empty').style.display = 'none';
+      document.getElementById('file-name').textContent = '✓  ' + file.name;
+      document.getElementById('file-name').style.display = 'block';
+      document.getElementById('stage-btn').disabled = false;
+      document.getElementById('placeholder').style.display = '';
+      document.getElementById('description-panel').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
+  document.getElementById('file-input-2').addEventListener('change', e => handleFile(e.target.files[0]));
+
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+
+  const statusMessages = [
+    "Reading architectural details…",
+    "Identifying room type & dimensions…",
+    "Selecting furniture pieces…",
+    "Composing the staging concept…",
+    "Writing listing description…"
+  ];
+
+  async function runStaging() {
+    if (!uploadedImageBase64) return;
+
+    const btn = document.getElementById('stage-btn');
+    const loading = document.getElementById('loading');
+    const placeholder = document.getElementById('placeholder');
+    const errorMsg = document.getElementById('error-msg');
+    const statusEl = document.getElementById('stage-status');
+
+    btn.disabled = true;
+    placeholder.style.display = 'none';
+    loading.style.display = '';
+    errorMsg.style.display = 'none';
+    document.getElementById('description-panel').style.display = 'none';
+
+    let si = 0;
+    const interval = setInterval(() => {
+      si = (si + 1) % statusMessages.length;
+      statusEl.textContent = statusMessages[si];
+    }, 2200);
+
+    const prompt = `You are a professional real estate stager and interior designer. Study this room photo carefully, then create a detailed virtual staging plan in the "${selectedStyle}" design style.
+
+First identify the room type and all fixed architectural features visible (flooring, windows, ceiling, built-ins, cabinetry, countertops, fireplace, etc.).
+
+Respond ONLY with a valid JSON object — no markdown, no backticks, no commentary before or after:
+{
+  "title": "Short evocative staging title",
+  "room_type": "Identified room type",
+  "overview": "2-3 sentence vision of the staging",
+  "listing_description": "4-5 sentence MLS-ready listing paragraph describing this room as staged",
+  "furniture_pieces": [
+    {"name": "Item", "description": "Color, material, exact placement", "style_note": "Why this fits the style"}
+  ],
+  "color_palette": ["Color 1", "Color 2", "Color 3", "Color 4"],
+  "key_design_moves": ["Move 1", "Move 2", "Move 3"]
+}
+Include 6-8 furniture_pieces covering all major zones of the room.`;
+
+    const headers = {
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    };
+    if (API_KEY) headers["x-api-key"] = API_KEY;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: uploadedMediaType, data: uploadedImageBase64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+
+      clearInterval(interval);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API ${response.status}: ${errText}`);
+      }
+
+      const data = await response.json();
+      const raw = data.content.map(i => i.text || "").join("");
+      const result = JSON.parse(raw.replace(/```json|```/g, "").trim());
+
+      loading.style.display = 'none';
+
+      document.getElementById('desc-title').textContent = result.title || "Staging Concept";
+
+      let html = `<p>${result.overview || ""}</p>`;
+      if (result.listing_description) {
+        html += `<p style="margin-top:14px;font-style:italic;color:#5a5248;border-left:3px solid #c4a882;padding-left:14px">${result.listing_description}</p>`;
+      }
+      if (result.color_palette?.length) {
+        html += `<div style="margin-top:16px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#7a7169">Color Palette — </span>`;
+        html += result.color_palette.map(c => `<span style="font-size:13px;margin-right:12px">● ${c}</span>`).join('');
+        html += `</div>`;
+      }
+      if (result.key_design_moves?.length) {
+        html += `<div style="margin-top:14px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#7a7169">Key Design Moves</span><ul style="margin-top:8px;padding-left:18px">`;
+        result.key_design_moves.forEach(m => { html += `<li style="font-size:13px;line-height:1.8;color:#444">${m}</li>`; });
+        html += `</ul></div>`;
+      }
+      document.getElementById('staged-text').innerHTML = html;
+
+      const grid = document.getElementById('items-grid');
+      grid.innerHTML = '';
+      (result.furniture_pieces || []).forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `<div class="item-name">${item.name}</div><div class="item-detail">${item.description}</div>`;
+        if (item.style_note) {
+          const note = document.createElement('div');
+          note.style.cssText = 'font-size:11px;color:#8b6f4e;margin-top:4px;font-style:italic';
+          note.textContent = item.style_note;
+          card.appendChild(note);
+        }
+        grid.appendChild(card);
+      });
+
+      document.getElementById('description-panel').style.display = 'block';
+      document.getElementById('description-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      clearInterval(interval);
+      loading.style.display = 'none';
+      placeholder.style.display = '';
+      errorMsg.style.display = 'block';
+      errorMsg.textContent = "Error: " + err.message;
+    }
+
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
